@@ -13,6 +13,10 @@ export interface Stock {
   score: number; // AI Score 0-100
   analysis: string;
   history: { value: number }[]; // For sparkline
+  // New Strength Factors
+  candleStrength: number; // 0-100
+  volumeStrength: number; // 0-100
+  futuresStrength: number; // 0-100
 }
 
 const generateHistory = (basePrice: number, volatility: number) => {
@@ -39,6 +43,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 98,
     analysis: "Dominating AI infrastructure spend. Data center revenue projected to grow 15% QoQ. Technical breakout above $145 confirmed with high volume. Strong accumulation detected.",
     history: generateHistory(140, 0.05),
+    candleStrength: 95,
+    volumeStrength: 92,
+    futuresStrength: 88
   },
   {
     id: "2",
@@ -55,6 +62,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 94,
     analysis: "Robotaxi optimism fueling momentum. Key resistance at $350 is being tested. RSI indicates overbought conditions but momentum remains strong. Watch for pullback to $330 support.",
     history: generateHistory(330, 0.08),
+    candleStrength: 85,
+    volumeStrength: 90,
+    futuresStrength: 82
   },
   {
     id: "3",
@@ -71,6 +81,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 92,
     analysis: "Commercial revenue acceleration is outpacing estimates. AIP bootcamp conversion rates are at all-time highs. Stock is in parabolic discovery mode.",
     history: generateHistory(55, 0.1),
+    candleStrength: 98,
+    volumeStrength: 95,
+    futuresStrength: 91
   },
   {
     id: "4",
@@ -87,6 +100,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 75,
     analysis: "Consolidating recent gains. MI300 sales tracking well but concerns over margin pressure persist. Support at $170 must hold for bullish thesis to remain valid.",
     history: generateHistory(180, 0.04),
+    candleStrength: 45,
+    volumeStrength: 60,
+    futuresStrength: 55
   },
   {
     id: "5",
@@ -103,6 +119,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 89,
     analysis: "Crypto cycle tailwinds are significant. Trading volume spikes correlating with Bitcoin ATH attempts. Regulatory clarity improving post-election.",
     history: generateHistory(270, 0.12),
+    candleStrength: 88,
+    volumeStrength: 85,
+    futuresStrength: 92
   },
   {
     id: "6",
@@ -119,6 +138,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 68,
     analysis: "iPhone 16 cycle showing mixed early signals. Services revenue remains the growth engine. Stock is range-bound between $225 and $240.",
     history: generateHistory(234, 0.01),
+    candleStrength: 55,
+    volumeStrength: 48,
+    futuresStrength: 60
   },
   {
     id: "7",
@@ -135,6 +157,9 @@ export const MOCK_STOCKS: Stock[] = [
     score: 45,
     analysis: "AI monetization concerns weighing on valuation. Azure growth decelerating slightly. Technical breakdown below 50-day moving average.",
     history: generateHistory(435, 0.02),
+    candleStrength: 30,
+    volumeStrength: 42,
+    futuresStrength: 40
   },
   {
     id: "8",
@@ -151,5 +176,8 @@ export const MOCK_STOCKS: Stock[] = [
     score: 96,
     analysis: "Bitcoin proxy play with leverage. Premium to NAV expanding. High volatility expected but trend is strictly upward.",
     history: generateHistory(360, 0.15),
+    candleStrength: 97,
+    volumeStrength: 94,
+    futuresStrength: 96
   },
 ];

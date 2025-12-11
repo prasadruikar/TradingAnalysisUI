@@ -10,6 +10,9 @@ import {
   Target,
   AlertTriangle,
   ArrowRight,
+  CandlestickChart,
+  Layers,
+  BarChart2,
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import { MOCK_STOCKS, type Stock } from "@/lib/mock-data";
@@ -42,6 +45,56 @@ const Metric = ({
     </div>
   </div>
 );
+
+const StrengthBar = ({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+}) => {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Icon className="w-3.5 h-3.5" />
+          <span className="font-medium tracking-wide text-[10px] uppercase">
+            {label}
+          </span>
+        </div>
+        <span
+          className={cn(
+            "font-mono font-bold",
+            value >= 70
+              ? "text-primary"
+              : value >= 40
+              ? "text-yellow-500"
+              : "text-destructive"
+          )}
+        >
+          {value}%
+        </span>
+      </div>
+      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${value}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className={cn(
+            "h-full rounded-full shadow-[0_0_8px_currentColor]",
+            value >= 70
+              ? "bg-primary text-primary"
+              : value >= 40
+              ? "bg-yellow-500 text-yellow-500"
+              : "bg-destructive text-destructive"
+          )}
+        />
+      </div>
+    </div>
+  );
+};
 
 const SentimentMeter = ({ score }: { score: number }) => {
   return (
@@ -94,7 +147,9 @@ const StockCard = ({
       <motion.div
         className={cn(
           "glass-card p-6 rounded-xl relative z-10 transition-all duration-300 cursor-pointer overflow-hidden border-l-4",
-          isHovered ? "border-l-primary scale-[1.02]" : "border-l-transparent hover:border-l-primary/50"
+          isHovered
+            ? "border-l-primary scale-[1.02]"
+            : "border-l-transparent hover:border-l-primary/50"
         )}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
@@ -143,15 +198,29 @@ const StockCard = ({
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={stock.history}>
               <defs>
-                <linearGradient id={`gradient-${stock.id}`} x1="0" y1="0" x2="0" y2="1">
+                <linearGradient
+                  id={`gradient-${stock.id}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
                   <stop
                     offset="5%"
-                    stopColor={stock.change >= 0 ? "var(--color-primary)" : "var(--color-destructive)"}
+                    stopColor={
+                      stock.change >= 0
+                        ? "var(--color-primary)"
+                        : "var(--color-destructive)"
+                    }
                     stopOpacity={0.3}
                   />
                   <stop
                     offset="95%"
-                    stopColor={stock.change >= 0 ? "var(--color-primary)" : "var(--color-destructive)"}
+                    stopColor={
+                      stock.change >= 0
+                        ? "var(--color-primary)"
+                        : "var(--color-destructive)"
+                    }
                     stopOpacity={0}
                   />
                 </linearGradient>
@@ -159,7 +228,11 @@ const StockCard = ({
               <Area
                 type="monotone"
                 dataKey="value"
-                stroke={stock.change >= 0 ? "var(--color-primary)" : "var(--color-destructive)"}
+                stroke={
+                  stock.change >= 0
+                    ? "var(--color-primary)"
+                    : "var(--color-destructive)"
+                }
                 fill={`url(#gradient-${stock.id})`}
                 strokeWidth={2}
               />
@@ -176,23 +249,39 @@ const StockCard = ({
             animate={{ opacity: 1, scale: 1, y: 0, x: 20 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-0 left-full ml-4 w-[320px] z-50 glass-popover rounded-xl p-5 hidden xl:block"
+            className="absolute top-0 left-full ml-4 w-[340px] z-50 glass-popover rounded-xl p-5 hidden xl:block"
           >
-            <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
+            <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
               <Zap className="w-4 h-4 text-yellow-400" />
               <h4 className="text-sm font-bold font-display uppercase tracking-wider text-foreground">
-                AI Analysis Insight
+                AI Signal Strength
               </h4>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* Overall AI Score */}
               <SentimentMeter score={stock.score} />
 
-              <div className="grid grid-cols-2 gap-3">
-                <Metric label="Vol" value={stock.volume} />
-                <Metric label="Mkt Cap" value={stock.marketCap} />
+              {/* 3 Key Expansion Factors */}
+              <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+                <StrengthBar
+                  label="Candle Expansion"
+                  value={stock.candleStrength}
+                  icon={CandlestickChart}
+                />
+                <StrengthBar
+                  label="Volume Expansion"
+                  value={stock.volumeStrength}
+                  icon={BarChart2}
+                />
+                <StrengthBar
+                  label="Futures Expansion"
+                  value={stock.futuresStrength}
+                  icon={Layers}
+                />
               </div>
 
+              {/* Analysis Text */}
               <div className="bg-white/5 p-3 rounded-lg border border-white/5">
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   <span className="text-foreground font-semibold mr-1">
@@ -202,13 +291,9 @@ const StockCard = ({
                 </p>
               </div>
 
-              <div className="flex gap-2">
-                 <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-[10px] hover:bg-primary/20">
-                    <Target className="w-3 h-3 mr-1" /> Breakout
-                 </Badge>
-                 <Badge variant="outline" className="border-white/10 text-muted-foreground bg-white/5 text-[10px]">
-                    <Activity className="w-3 h-3 mr-1" /> High Vol
-                 </Badge>
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <Metric label="Vol" value={stock.volume} />
+                <Metric label="Mkt Cap" value={stock.marketCap} />
               </div>
             </div>
           </motion.div>
@@ -239,7 +324,7 @@ export default function Dashboard() {
           backgroundPosition: "center",
         }}
       />
-      
+
       {/* Gradient Overlay for Readability */}
       <div className="fixed inset-0 z-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95 pointer-events-none" />
 
