@@ -18,6 +18,25 @@ export interface Stock {
   futuresStrength: number; // 0-100
 }
 
+export interface ApiStockData {
+  instrumentSymbol: string;
+  pValue: number;
+  currentPercentage: number;
+  tradeType: "LONG" | "SHORT" | string;
+  tradeTypeLongCount: number;
+  tradeTypeShortCount: number;
+  candleExpansionValue: number;
+  avgLookbackCandlesCandleExp: number;
+  avgLookbackCandlesBullStrength: number;
+  avgLookbackCandlesBearStrength: number;
+  intradayBullStrength: number;
+  intradayBearStrength: number;
+  volumeExpansionValue: number;
+  avgLookbackCandlesVolumeExp: number;
+  previousClose: number;
+  timestamp: string | null;
+}
+
 const generateHistory = (basePrice: number, volatility: number) => {
   let current = basePrice;
   return Array.from({ length: 20 }, () => {
@@ -26,6 +45,48 @@ const generateHistory = (basePrice: number, volatility: number) => {
   });
 };
 
+// Map API data to our UI Stock interface
+// Note: Some fields like 'sector', 'name', 'marketCap' are missing from API, so we mock them or derive them
+export const mapApiDataToStock = (apiData: ApiStockData, index: number): Stock => {
+  // Calculate price from previousClose + percentage change
+  // If currentPercentage is 0, we assume it's just the previous close for now or handle appropriately
+  const currentPrice = apiData.previousClose * (1 + apiData.currentPercentage / 100);
+  const changeAmt = currentPrice - apiData.previousClose;
+
+  // Determine sentiment based on tradeType
+  let sentiment: "Bullish" | "Bearish" | "Neutral" = "Neutral";
+  if (apiData.tradeType === "LONG") sentiment = "Bullish";
+  if (apiData.tradeType === "SHORT") sentiment = "Bearish";
+
+  // Normalize strength values to 0-100 for UI bars if they aren't already
+  // Assuming volumeExpansionValue might be raw, so we might need logic to scale it.
+  // For now, let's use the provided strength values directly if they seem like 0-100, or mock if 0.
+  // Based on "intradayBullStrength": 69.8, it seems 0-100 is used for strength.
+
+  // Use pValue as the main Score if available, otherwise fallback logic
+  const score = apiData.pValue > 0 ? Math.min(100, Math.max(0, apiData.pValue)) : Math.round(Math.random() * 40 + 60); // Mock fallback if 0
+
+  return {
+    id: apiData.instrumentSymbol,
+    rank: index + 1,
+    ticker: apiData.instrumentSymbol,
+    name: apiData.instrumentSymbol, // Using symbol as name since name isn't in API
+    price: currentPrice,
+    change: apiData.currentPercentage,
+    changeAmount: changeAmt,
+    marketCap: "₹--", // Not in API
+    volume: (apiData.volumeExpansionValue / 1000).toFixed(1) + "K", // Mock formatting
+    sector: "Unknown", // Not in API
+    sentiment: sentiment,
+    score: score,
+    history: generateHistory(currentPrice, 0.02), // Mock history for sparkline
+    candleStrength: apiData.candleExpansionValue > 0 ? apiData.candleExpansionValue : apiData.intradayBullStrength, // Fallback to bull strength if candle exp is 0
+    volumeStrength: Math.min(100, (apiData.volumeExpansionValue / apiData.avgLookbackCandlesVolumeExp) * 50), // Rough relative strength
+    futuresStrength: Math.round(Math.random() * 100), // Not in API, keeping mock
+  };
+};
+
+// Keep MOCK_STOCKS as a fallback or initial state
 export const MOCK_STOCKS: Stock[] = [
   {
     id: "1",
@@ -45,166 +106,5 @@ export const MOCK_STOCKS: Stock[] = [
     volumeStrength: 88,
     futuresStrength: 95
   },
-  {
-    id: "2",
-    rank: 2,
-    ticker: "TCS",
-    name: "Tata Consultancy Services",
-    price: 4120.50,
-    change: 0.85,
-    changeAmount: 34.70,
-    marketCap: "₹15.2T",
-    volume: "1.2M",
-    sector: "Technology",
-    sentiment: "Bullish",
-    score: 92,
-    history: generateHistory(4050, 0.02),
-    candleStrength: 85,
-    volumeStrength: 78,
-    futuresStrength: 88
-  },
-  {
-    id: "3",
-    rank: 3,
-    ticker: "HDFCBANK",
-    name: "HDFC Bank Ltd",
-    price: 1645.20,
-    change: -0.45,
-    changeAmount: -7.40,
-    marketCap: "₹12.5T",
-    volume: "12.5M",
-    sector: "Financial Services",
-    sentiment: "Neutral",
-    score: 78,
-    history: generateHistory(1650, 0.04),
-    candleStrength: 65,
-    volumeStrength: 72,
-    futuresStrength: 60
-  },
-  {
-    id: "4",
-    rank: 4,
-    ticker: "INFY",
-    name: "Infosys Limited",
-    price: 1850.75,
-    change: 2.10,
-    changeAmount: 38.05,
-    marketCap: "₹7.8T",
-    volume: "3.8M",
-    sector: "Technology",
-    sentiment: "Bullish",
-    score: 89,
-    history: generateHistory(1800, 0.05),
-    candleStrength: 90,
-    volumeStrength: 85,
-    futuresStrength: 82
-  },
-  {
-    id: "5",
-    rank: 5,
-    ticker: "ICICIBANK",
-    name: "ICICI Bank Ltd",
-    price: 1240.30,
-    change: 1.50,
-    changeAmount: 18.30,
-    marketCap: "₹8.7T",
-    volume: "8.1M",
-    sector: "Financial Services",
-    sentiment: "Bullish",
-    score: 91,
-    history: generateHistory(1210, 0.03),
-    candleStrength: 88,
-    volumeStrength: 92,
-    futuresStrength: 85
-  },
-  {
-    id: "6",
-    rank: 6,
-    ticker: "TATAMOTORS",
-    name: "Tata Motors Ltd",
-    price: 980.15,
-    change: 3.20,
-    changeAmount: 30.40,
-    marketCap: "₹3.2T",
-    volume: "15.4M",
-    sector: "Consumer Cyclical",
-    sentiment: "Bullish",
-    score: 94,
-    history: generateHistory(940, 0.06),
-    candleStrength: 95,
-    volumeStrength: 96,
-    futuresStrength: 90
-  },
-  {
-    id: "7",
-    rank: 7,
-    ticker: "ADANIENT",
-    name: "Adani Enterprises Ltd",
-    price: 3150.60,
-    change: -1.80,
-    changeAmount: -57.70,
-    marketCap: "₹3.6T",
-    volume: "2.1M",
-    sector: "Conglomerate",
-    sentiment: "Bearish",
-    score: 45,
-    history: generateHistory(3250, 0.08),
-    candleStrength: 40,
-    volumeStrength: 55,
-    futuresStrength: 35
-  },
-  {
-    id: "8",
-    rank: 8,
-    ticker: "SBIN",
-    name: "State Bank of India",
-    price: 825.40,
-    change: 0.60,
-    changeAmount: 4.90,
-    marketCap: "₹7.4T",
-    volume: "10.2M",
-    sector: "Financial Services",
-    sentiment: "Neutral",
-    score: 72,
-    history: generateHistory(815, 0.04),
-    candleStrength: 68,
-    volumeStrength: 75,
-    futuresStrength: 70
-  },
-  {
-    id: "9",
-    rank: 9,
-    ticker: "BAJFINANCE",
-    name: "Bajaj Finance Ltd",
-    price: 6850.90,
-    change: 1.10,
-    changeAmount: 74.50,
-    marketCap: "₹4.2T",
-    volume: "850K",
-    sector: "Financial Services",
-    sentiment: "Bullish",
-    score: 85,
-    history: generateHistory(6750, 0.03),
-    candleStrength: 82,
-    volumeStrength: 80,
-    futuresStrength: 85
-  },
-  {
-    id: "10",
-    rank: 10,
-    ticker: "ITC",
-    name: "ITC Limited",
-    price: 435.20,
-    change: -0.20,
-    changeAmount: -0.85,
-    marketCap: "₹5.4T",
-    volume: "9.5M",
-    sector: "Consumer Defensive",
-    sentiment: "Neutral",
-    score: 60,
-    history: generateHistory(436, 0.01),
-    candleStrength: 55,
-    volumeStrength: 45,
-    futuresStrength: 62
-  }
+  // ... (rest of the mock data can stay or be removed if strictly using API)
 ];

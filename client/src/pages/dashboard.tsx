@@ -13,9 +13,11 @@ import {
   CandlestickChart,
   Layers,
   BarChart2,
+  RefreshCw,
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
-import { MOCK_STOCKS, type Stock } from "@/lib/mock-data";
+import { type Stock } from "@/lib/mock-data";
+import { useStocks } from "@/lib/api";
 import bgImage from "@assets/generated_images/dark_abstract_digital_finance_background.png";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -74,13 +76,13 @@ const StrengthBar = ({
               : "text-destructive"
           )}
         >
-          {value}%
+          {value.toFixed(0)}%
         </span>
       </div>
       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
+          animate={{ width: `${Math.min(100, Math.max(0, value))}%` }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           className={cn(
             "h-full rounded-full shadow-[0_0_8px_currentColor]",
@@ -110,7 +112,7 @@ const ScoreMeter = ({ score }: { score: number }) => {
               : "text-destructive"
           )}
         >
-          {score}/100
+          {score.toFixed(0)}/100
         </span>
       </div>
       <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
@@ -123,7 +125,7 @@ const ScoreMeter = ({ score }: { score: number }) => {
               ? "bg-yellow-500"
               : "bg-destructive"
           )}
-          style={{ width: `${score}%` }}
+          style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
         />
       </div>
     </div>
@@ -183,7 +185,7 @@ const StockCard = ({
               )}
             >
               {stock.change >= 0 ? "+" : ""}
-              {stock.change}%
+              {stock.change.toFixed(2)}%
               {stock.change >= 0 ? (
                 <TrendingUp className="w-3 h-3" />
               ) : (
@@ -296,8 +298,10 @@ const StockCard = ({
 export default function Dashboard() {
   const [hoveredStockId, setHoveredStockId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  const { data: stocks, isLoading, isError } = useStocks();
 
-  const filteredStocks = MOCK_STOCKS.filter(
+  const filteredStocks = (stocks || []).filter(
     (s) =>
       s.ticker.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -348,21 +352,39 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
+            <RefreshCw className="w-10 h-10 animate-spin mb-4 text-primary" />
+            <p>Fetching algorithmic rankings...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {isError && (
+          <div className="text-center py-20 text-destructive">
+            <AlertTriangle className="w-10 h-10 mx-auto mb-4" />
+            <p>Failed to load market data.</p>
+          </div>
+        )}
+
         {/* Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 pb-20">
-          {filteredStocks.map((stock) => (
-            <StockCard
-              key={stock.id}
-              stock={stock}
-              isHovered={hoveredStockId === stock.id}
-              onHover={() => setHoveredStockId(stock.id)}
-              onLeave={() => setHoveredStockId(null)}
-            />
-          ))}
-        </div>
+        {!isLoading && !isError && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 pb-20">
+            {filteredStocks.map((stock) => (
+              <StockCard
+                key={stock.id}
+                stock={stock}
+                isHovered={hoveredStockId === stock.id}
+                onHover={() => setHoveredStockId(stock.id)}
+                onLeave={() => setHoveredStockId(null)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
-        {filteredStocks.length === 0 && (
+        {!isLoading && !isError && filteredStocks.length === 0 && (
           <div className="text-center py-20">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/5 mb-4">
               <AlertTriangle className="w-8 h-8 text-muted-foreground" />
