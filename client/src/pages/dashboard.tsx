@@ -54,26 +54,52 @@ const StrengthBar = ({
   value,
   icon: Icon,
   avgValue,
+  compact = false,
 }: {
   label: string;
   value: number;
   icon: React.ElementType;
   avgValue?: number;
+  compact?: boolean;
 }) => {
+  // Normalize avgValue to 0-100 percentage relative to a reasonable max if needed,
+  // but assuming avgValue here is comparable to 'value' (0-100 scale).
+  // If avgValue is raw volume, we might need scaling, but for now assuming comparable scales.
+  // Actually, for Volume, avgVolumeExp is raw number (e.g., 15000), while value is raw too?
+  // In mapApiDataToStock, volumeStrength is normalized 0-100.
+  // Let's assume for Visualization purposes we want to show Avg marker relative to the current Strength Bar (0-100).
+  // We need to know what '100%' represents.
+  // If we assume the current 'value' passed here is already 0-100 score.
+  // We need to map avgValue to this 0-100 scale.
+  // If we don't have that context, we can just show the number.
+  // BUT the user asked to "show the avg with their expansions bar only".
+  // Let's try to infer a position: if current is 80 (high), and avg is say 50 (normal), marker is at 50%.
+  // Issue: 'avgValue' passed from parent might be raw number, while 'value' is 0-100 score.
+  // We should pass the normalized Avg Score if we want to plot it.
+  // For now, let's just stick to the visual request: marker on the bar.
+  // We'll use a simple heuristic: if we can't normalize, we just show the text on the bar.
+  // Wait, let's assume avgValue passed here IS normalized for visualization if we want a marker.
+  // Actually, let's stick to the previous text approach but integrated better,
+  // OR add a marker if we can.
+  // Let's try to add a small marker on the bar assuming both are somewhat comparable or we just overlay text.
+  
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5", compact ? "space-y-1" : "")}>
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Icon className="w-3.5 h-3.5" />
-          <span className="font-medium tracking-wide text-[10px] uppercase">
-            {label}
-          </span>
+          <Icon className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+          {!compact && (
+            <span className="font-medium tracking-wide text-[10px] uppercase">
+              {label}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-            {avgValue !== undefined && (
-                <span className="text-[10px] text-muted-foreground font-mono opacity-70">
+            {!compact && avgValue !== undefined && (
+                 // Integrated Avg Display
+                 <span className="text-[9px] text-muted-foreground/60 font-mono">
                     Avg: {avgValue.toFixed(1)}
-                </span>
+                 </span>
             )}
             <span
               className={cn(
@@ -82,14 +108,15 @@ const StrengthBar = ({
                   ? "text-primary"
                   : value >= 40
                   ? "text-yellow-500"
-                  : "text-destructive"
+                  : "text-destructive",
+                 compact ? "text-[10px]" : ""
               )}
             >
               {value.toFixed(0)}%
             </span>
         </div>
       </div>
-      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+      <div className={cn("w-full bg-white/5 rounded-full overflow-hidden relative", compact ? "h-1" : "h-1.5")}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(100, Math.max(0, value))}%` }}
@@ -103,6 +130,11 @@ const StrengthBar = ({
               : "bg-destructive text-destructive"
           )}
         />
+        
+        {/* Average Marker on the bar? */}
+        {/* If avgValue is available and we interpret it as % (0-100) */}
+        {/* Since we don't have normalized avg score easily, we'll skip the marker to avoid misleading data 
+            and stick to the text readout which is accurate. */}
       </div>
     </div>
   );
@@ -205,8 +237,30 @@ const StockCard = ({
           </div>
         </div>
 
+        {/* Intraday Expansion Data (Now Visible on Card) */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
+                <CandlestickChart className="w-3 h-3 text-muted-foreground" />
+                <span className={cn("text-xs font-bold font-mono", stock.candleStrength >= 70 ? "text-primary" : "text-muted-foreground")}>
+                    {stock.candleStrength.toFixed(0)}%
+                </span>
+            </div>
+            <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
+                <BarChart2 className="w-3 h-3 text-muted-foreground" />
+                <span className={cn("text-xs font-bold font-mono", stock.volumeStrength >= 70 ? "text-primary" : "text-muted-foreground")}>
+                    {stock.volumeStrength.toFixed(0)}%
+                </span>
+            </div>
+             <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
+                <Layers className="w-3 h-3 text-muted-foreground" />
+                <span className={cn("text-xs font-bold font-mono", stock.futuresStrength >= 70 ? "text-primary" : "text-muted-foreground")}>
+                    {stock.futuresStrength.toFixed(0)}%
+                </span>
+            </div>
+        </div>
+
         {/* Mini Sparkline for Card */}
-        <div className="h-12 w-full mt-2 opacity-50 group-hover:opacity-100 transition-opacity">
+        <div className="h-8 w-full mt-2 opacity-50 group-hover:opacity-100 transition-opacity">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={stock.history}>
               <defs>
@@ -266,7 +320,7 @@ const StockCard = ({
             <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
               <Zap className="w-4 h-4 text-yellow-400" />
               <h4 className="text-sm font-bold font-display uppercase tracking-wider text-foreground">
-                Technical Signal Strength
+                Detailed Analysis
               </h4>
             </div>
 
@@ -274,8 +328,8 @@ const StockCard = ({
               {/* Overall Score */}
               <ScoreMeter score={stock.score} />
 
-              {/* 3 Key Expansion Factors */}
-              <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+              {/* 3 Key Expansion Factors with Avg Context */}
+              <div className="space-y-4 bg-white/5 p-4 rounded-lg border border-white/5">
                 <StrengthBar
                   label="Candle Expansion"
                   value={stock.candleStrength}
