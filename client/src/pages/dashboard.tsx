@@ -147,16 +147,6 @@ const ExpansionMetric = ({
     avgValue?: number,
     icon: React.ElementType
 }) => {
-    // Determine if we can plot avg as a percentage (is it likely 0-100?)
-    // If avgValue is > 100 (like volume 15000), we treat it as raw data and don't try to plot it on 0-100 scale
-    // unless we normalize. For visualization, let's normalize simply against current value?
-    // No, that's misleading.
-    // Let's assume standard 0-100 bars for strength.
-    // User said "candleExpansion in the bar view so same way show for the avg".
-    // This implies Avg is also a strength metric (0-100) or normalized.
-    // If it's raw (1.5), we can't plot it against 100%.
-    // VISUAL TRICK: We will render two bars labeled clearly.
-    
     return (
         <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mb-1">
@@ -164,7 +154,23 @@ const ExpansionMetric = ({
                 <span className="font-medium tracking-wide text-[10px] uppercase">{label}</span>
             </div>
             
-            {/* Current Value Bar */}
+            {/* Avg Value Bar (First) */}
+            {avgValue !== undefined && (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 text-[9px] font-mono text-muted-foreground/50 text-right">AVG</div>
+                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-white/20 rounded-full"
+                            style={{ width: `${avgValue <= 100 ? avgValue : 60}%` }}
+                        />
+                    </div>
+                    <div className="w-8 text-[10px] font-mono text-muted-foreground/60 text-right">
+                        {avgValue.toFixed(avgValue < 10 ? 2 : 0)}
+                    </div>
+                </div>
+            )}
+
+            {/* Current Value Bar (Second) */}
             <div className="flex items-center gap-3">
                 <div className="w-8 text-[9px] font-mono text-muted-foreground text-right">NOW</div>
                 <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -182,37 +188,6 @@ const ExpansionMetric = ({
                     {currentValue.toFixed(0)}
                 </div>
             </div>
-
-            {/* Avg Value Bar */}
-            {avgValue !== undefined && (
-                <div className="flex items-center gap-3">
-                    <div className="w-8 text-[9px] font-mono text-muted-foreground/50 text-right">AVG</div>
-                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                         {/* 
-                            Logic for Avg Bar Width:
-                            If avg is raw (e.g. 1.5) and current is 90, we can't compare directly on 0-100.
-                            However, if the user says "avg candle expansion", and current is 90 (strength),
-                            maybe current is derived from avg?
-                            If we can't reliably determine width, we show a neutral width or full width with label.
-                            Let's assume for visual balance we show it as a relative indicator if possible.
-                            If avgValue < 10, it's likely raw candle count (1.5).
-                            If avgValue > 1000, it's volume.
-                            If avgValue is ~50, it's strength.
-                            
-                            FALLBACK: If we can't plot it, we just show the number.
-                            But user explicitly asked for "bar view".
-                            Let's just fill it 50% opacity white as a baseline visual if we can't calc %
-                         */}
-                        <div 
-                            className="h-full bg-white/20 rounded-full"
-                            style={{ width: `${avgValue <= 100 ? avgValue : 60}%` }}
-                        />
-                    </div>
-                    <div className="w-8 text-[10px] font-mono text-muted-foreground/60 text-right">
-                        {avgValue.toFixed(avgValue < 10 ? 2 : 0)}
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
@@ -252,6 +227,82 @@ const ScoreMeter = ({ score }: { score: number }) => {
   );
 };
 
+// Vertical Bar Component for "Music Volume" Style
+const EqualizerBar = ({
+  label,
+  current,
+  avg,
+  icon: Icon,
+}: {
+  label: string;
+  current: number;
+  avg?: number;
+  icon: React.ElementType;
+}) => {
+  // Normalize avg for visualization (clamped 0-100)
+  const normAvg = avg ? Math.min(100, Math.max(0, avg)) : 0;
+  const normCurrent = Math.min(100, Math.max(0, current));
+
+  return (
+    <div className="flex flex-col items-center gap-2 p-2 rounded-lg border border-white/5 bg-black/20 hover:bg-white/5 transition-colors group/bar">
+      {/* Bars Container */}
+      <div className="flex items-end gap-1.5 h-16 w-full justify-center px-1">
+        {/* Avg Bar (Left, thinner, dimmer) */}
+        {avg !== undefined && (
+          <div className="flex flex-col items-center gap-1 h-full justify-end">
+            <div className="relative w-1.5 h-full bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="absolute bottom-0 w-full bg-white/30 rounded-full transition-all duration-500"
+                style={{ height: `${normAvg}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Current Bar (Right, thicker, colored) */}
+        <div className="flex flex-col items-center gap-1 h-full justify-end">
+          <div className="relative w-2.5 h-full bg-white/5 rounded-full overflow-hidden">
+            {/* Segmented Look using CSS mask or simple gradient */}
+            <div
+              className={cn(
+                "absolute bottom-0 w-full rounded-full transition-all duration-500 shadow-[0_0_10px_currentColor]",
+                current >= 70
+                  ? "bg-primary text-primary"
+                  : current >= 40
+                  ? "bg-yellow-500 text-yellow-500"
+                  : "bg-destructive text-destructive"
+              )}
+              style={{ height: `${normCurrent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Label & Value */}
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-center gap-1">
+          <Icon className="w-3 h-3 text-muted-foreground" />
+          <span
+            className={cn(
+              "text-xs font-bold font-mono",
+              current >= 70
+                ? "text-primary"
+                : current >= 40
+                ? "text-yellow-500"
+                : "text-foreground"
+            )}
+          >
+            {current.toFixed(0)}
+          </span>
+        </div>
+        {avg !== undefined && (
+           <span className="text-[9px] text-muted-foreground/50 font-mono">Avg:{avg.toFixed(0)}</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const StockCard = ({
   stock,
   isHovered,
@@ -263,6 +314,12 @@ const StockCard = ({
   onHover: () => void;
   onLeave: () => void;
 }) => {
+  const handleDoubleClick = () => {
+    // Redirect to TradingView chart
+    const url = `https://www.tradingview.com/chart/U5w9u4Ox/?symbol=NSE%3A${stock.ticker}&interval=5`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="relative group">
       {/* Main Card */}
@@ -275,11 +332,12 @@ const StockCard = ({
         )}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
+        onDoubleClick={handleDoubleClick}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono">
@@ -315,26 +373,26 @@ const StockCard = ({
           </div>
         </div>
 
-        {/* Intraday Expansion Data (Now Visible on Card) */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
-                <CandlestickChart className="w-3 h-3 text-muted-foreground" />
-                <span className={cn("text-xs font-bold font-mono", stock.candleStrength >= 70 ? "text-primary" : "text-muted-foreground")}>
-                    {stock.candleStrength.toFixed(0)}%
-                </span>
-            </div>
-            <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
-                <BarChart2 className="w-3 h-3 text-muted-foreground" />
-                <span className={cn("text-xs font-bold font-mono", stock.volumeStrength >= 70 ? "text-primary" : "text-muted-foreground")}>
-                    {stock.volumeStrength.toFixed(0)}%
-                </span>
-            </div>
-             <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
-                <Layers className="w-3 h-3 text-muted-foreground" />
-                <span className={cn("text-xs font-bold font-mono", stock.futuresStrength >= 70 ? "text-primary" : "text-muted-foreground")}>
-                    {stock.futuresStrength.toFixed(0)}%
-                </span>
-            </div>
+        {/* Vertical Equalizer Bars for Expansion Data */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+            <EqualizerBar 
+                label="Candle" 
+                current={stock.candleStrength} 
+                avg={stock.avgCandleExp} 
+                icon={CandlestickChart} 
+            />
+            <EqualizerBar 
+                label="Volume" 
+                current={stock.volumeStrength} 
+                avg={stock.avgVolumeExp} 
+                icon={BarChart2} 
+            />
+            <EqualizerBar 
+                label="Futures" 
+                current={stock.futuresStrength} 
+                avg={stock.avgFuturesExp} 
+                icon={Layers} 
+            />
         </div>
 
         {/* Mini Sparkline for Card */}
