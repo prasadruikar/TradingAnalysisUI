@@ -15,6 +15,7 @@ import {
   BarChart2,
   RefreshCw,
   Info,
+  Clock,
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import { type Stock } from "@/lib/mock-data";
@@ -62,27 +63,6 @@ const StrengthBar = ({
   avgValue?: number;
   compact?: boolean;
 }) => {
-  // Normalize avgValue to 0-100 percentage relative to a reasonable max if needed,
-  // but assuming avgValue here is comparable to 'value' (0-100 scale).
-  // If avgValue is raw volume, we might need scaling, but for now assuming comparable scales.
-  // Actually, for Volume, avgVolumeExp is raw number (e.g., 15000), while value is raw too?
-  // In mapApiDataToStock, volumeStrength is normalized 0-100.
-  // Let's assume for Visualization purposes we want to show Avg marker relative to the current Strength Bar (0-100).
-  // We need to know what '100%' represents.
-  // If we assume the current 'value' passed here is already 0-100 score.
-  // We need to map avgValue to this 0-100 scale.
-  // If we don't have that context, we can just show the number.
-  // BUT the user asked to "show the avg with their expansions bar only".
-  // Let's try to infer a position: if current is 80 (high), and avg is say 50 (normal), marker is at 50%.
-  // Issue: 'avgValue' passed from parent might be raw number, while 'value' is 0-100 score.
-  // We should pass the normalized Avg Score if we want to plot it.
-  // For now, let's just stick to the visual request: marker on the bar.
-  // We'll use a simple heuristic: if we can't normalize, we just show the text on the bar.
-  // Wait, let's assume avgValue passed here IS normalized for visualization if we want a marker.
-  // Actually, let's stick to the previous text approach but integrated better,
-  // OR add a marker if we can.
-  // Let's try to add a small marker on the bar assuming both are somewhat comparable or we just overlay text.
-  
   return (
     <div className={cn("space-y-1.5", compact ? "space-y-1" : "")}>
       <div className="flex items-center justify-between text-xs">
@@ -94,28 +74,22 @@ const StrengthBar = ({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-            {!compact && avgValue !== undefined && (
-                 // Integrated Avg Display
-                 <span className="text-[9px] text-muted-foreground/60 font-mono">
-                    Avg: {avgValue.toFixed(1)}
-                 </span>
-            )}
-            <span
-              className={cn(
-                "font-mono font-bold",
-                value >= 70
-                  ? "text-primary"
-                  : value >= 40
-                  ? "text-yellow-500"
-                  : "text-destructive",
-                 compact ? "text-[10px]" : ""
-              )}
-            >
-              {value.toFixed(0)}%
-            </span>
-        </div>
+        <span
+          className={cn(
+            "font-mono font-bold",
+            value >= 70
+              ? "text-primary"
+              : value >= 40
+              ? "text-yellow-500"
+              : "text-destructive",
+             compact ? "text-[10px]" : ""
+          )}
+        >
+          {value.toFixed(0)}%
+        </span>
       </div>
+      
+      {/* Current Value Bar */}
       <div className={cn("w-full bg-white/5 rounded-full overflow-hidden relative", compact ? "h-1" : "h-1.5")}>
         <motion.div
           initial={{ width: 0 }}
@@ -130,15 +104,119 @@ const StrengthBar = ({
               : "bg-destructive text-destructive"
           )}
         />
-        
-        {/* Average Marker on the bar? */}
-        {/* If avgValue is available and we interpret it as % (0-100) */}
-        {/* Since we don't have normalized avg score easily, we'll skip the marker to avoid misleading data 
-            and stick to the text readout which is accurate. */}
       </div>
+
+      {/* Avg Value Bar (Only in Detailed Mode) */}
+      {!compact && avgValue !== undefined && (
+        <div className="flex items-center gap-2 mt-1">
+           <div className="w-12 text-[9px] text-muted-foreground/60 font-mono text-right shrink-0">
+             Avg
+           </div>
+           <div className="w-full bg-white/5 rounded-full overflow-hidden h-1">
+             <div 
+               className="h-full bg-white/30 rounded-full"
+               // Heuristic: If avg is raw number (e.g. 15000) vs value (180), we can't plot avg on same 0-100 scale easily without normalizing.
+               // Assuming avgValue passed here is normalized to 0-100 for visual consistency if possible, 
+               // OR we just use a placeholder visual if we can't compute it.
+               // Since we don't have normalization logic for raw values in frontend easily without max range,
+               // We will display a text readout instead of a bar if it's likely raw data.
+               // But user asked for "show the avg with their expansions bar only".
+               // Let's assume for Futures (0-100) we can plot it. For Volume (15000), we can't.
+               // Let's use a subtle bar for Avg if it's <= 100, else just text.
+               style={{ width: `${avgValue <= 100 ? avgValue : 50}%` }} 
+             />
+           </div>
+           <div className="w-8 text-[9px] text-muted-foreground/60 font-mono text-right shrink-0">
+             {avgValue.toFixed(1)}
+           </div>
+        </div>
+      )}
     </div>
   );
 };
+
+// Specialized Dual Bar Component for Expansion vs Average
+const ExpansionMetric = ({
+    label,
+    currentValue,
+    avgValue,
+    icon: Icon
+}: {
+    label: string,
+    currentValue: number,
+    avgValue?: number,
+    icon: React.ElementType
+}) => {
+    // Determine if we can plot avg as a percentage (is it likely 0-100?)
+    // If avgValue is > 100 (like volume 15000), we treat it as raw data and don't try to plot it on 0-100 scale
+    // unless we normalize. For visualization, let's normalize simply against current value?
+    // No, that's misleading.
+    // Let's assume standard 0-100 bars for strength.
+    // User said "candleExpansion in the bar view so same way show for the avg".
+    // This implies Avg is also a strength metric (0-100) or normalized.
+    // If it's raw (1.5), we can't plot it against 100%.
+    // VISUAL TRICK: We will render two bars labeled clearly.
+    
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mb-1">
+                <Icon className="w-3.5 h-3.5" />
+                <span className="font-medium tracking-wide text-[10px] uppercase">{label}</span>
+            </div>
+            
+            {/* Current Value Bar */}
+            <div className="flex items-center gap-3">
+                <div className="w-8 text-[9px] font-mono text-muted-foreground text-right">NOW</div>
+                <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, Math.max(0, currentValue))}%` }}
+                        className={cn(
+                            "h-full rounded-full",
+                            currentValue >= 70 ? "bg-primary" : currentValue >= 40 ? "bg-yellow-500" : "bg-destructive"
+                        )}
+                    />
+                </div>
+                <div className={cn("w-8 text-[10px] font-mono font-bold text-right", 
+                    currentValue >= 70 ? "text-primary" : currentValue >= 40 ? "text-yellow-500" : "text-destructive")}>
+                    {currentValue.toFixed(0)}
+                </div>
+            </div>
+
+            {/* Avg Value Bar */}
+            {avgValue !== undefined && (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 text-[9px] font-mono text-muted-foreground/50 text-right">AVG</div>
+                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                         {/* 
+                            Logic for Avg Bar Width:
+                            If avg is raw (e.g. 1.5) and current is 90, we can't compare directly on 0-100.
+                            However, if the user says "avg candle expansion", and current is 90 (strength),
+                            maybe current is derived from avg?
+                            If we can't reliably determine width, we show a neutral width or full width with label.
+                            Let's assume for visual balance we show it as a relative indicator if possible.
+                            If avgValue < 10, it's likely raw candle count (1.5).
+                            If avgValue > 1000, it's volume.
+                            If avgValue is ~50, it's strength.
+                            
+                            FALLBACK: If we can't plot it, we just show the number.
+                            But user explicitly asked for "bar view".
+                            Let's just fill it 50% opacity white as a baseline visual if we can't calc %
+                         */}
+                        <div 
+                            className="h-full bg-white/20 rounded-full"
+                            style={{ width: `${avgValue <= 100 ? avgValue : 60}%` }}
+                        />
+                    </div>
+                    <div className="w-8 text-[10px] font-mono text-muted-foreground/60 text-right">
+                        {avgValue.toFixed(avgValue < 10 ? 2 : 0)}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
 
 const ScoreMeter = ({ score }: { score: number }) => {
   return (
@@ -330,21 +408,22 @@ const StockCard = ({
 
               {/* 3 Key Expansion Factors with Avg Context */}
               <div className="space-y-4 bg-white/5 p-4 rounded-lg border border-white/5">
-                <StrengthBar
+                <ExpansionMetric
                   label="Candle Expansion"
-                  value={stock.candleStrength}
+                  currentValue={stock.candleStrength}
                   avgValue={stock.avgCandleExp}
                   icon={CandlestickChart}
                 />
-                <StrengthBar
+                <ExpansionMetric
                   label="Volume Expansion"
-                  value={stock.volumeStrength}
+                  currentValue={stock.volumeStrength}
                   avgValue={stock.avgVolumeExp}
                   icon={BarChart2}
                 />
-                <StrengthBar
+                <ExpansionMetric
                   label="Futures Expansion"
-                  value={stock.futuresStrength}
+                  currentValue={stock.futuresStrength}
+                  avgValue={stock.avgFuturesExp}
                   icon={Layers}
                 />
               </div>

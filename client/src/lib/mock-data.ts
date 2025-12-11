@@ -20,6 +20,7 @@ export interface Stock {
   // Avg Expansion Metrics
   avgCandleExp: number;
   avgVolumeExp: number;
+  avgFuturesExp: number; // Added this field
   avgBullStrength: number;
   avgBearStrength: number;
 }
@@ -93,6 +94,7 @@ export const mapApiDataToStock = (apiData: ApiStockData, index: number): Stock =
     // Map avg values directly
     avgCandleExp: apiData.avgLookbackCandlesCandleExp,
     avgVolumeExp: apiData.avgLookbackCandlesVolumeExp,
+    avgFuturesExp: Math.round(Math.random() * 80 + 10), // Mocked Avg Futures Exp as requested
     avgBullStrength: apiData.avgLookbackCandlesBullStrength,
     avgBearStrength: apiData.avgLookbackCandlesBearStrength,
   };
@@ -119,6 +121,7 @@ export const MOCK_STOCKS: Stock[] = [
     futuresStrength: 95,
     avgCandleExp: 1.5,
     avgVolumeExp: 15000,
+    avgFuturesExp: 85,
     avgBullStrength: 0.7,
     avgBearStrength: 0.3
   },
