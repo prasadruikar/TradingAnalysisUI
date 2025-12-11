@@ -96,11 +96,11 @@ const StrengthBar = ({
   );
 };
 
-const SentimentMeter = ({ score }: { score: number }) => {
+const ScoreMeter = ({ score }: { score: number }) => {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs font-medium">
-        <span className="text-muted-foreground">AI Score</span>
+        <span className="text-muted-foreground">Algo Rank Score</span>
         <span
           className={cn(
             score >= 70
@@ -174,7 +174,7 @@ const StockCard = ({
           </div>
           <div className="text-right">
             <div className="text-xl font-bold text-foreground font-mono">
-              ${stock.price.toFixed(2)}
+              ₹{stock.price.toFixed(2)}
             </div>
             <div
               className={cn(
@@ -254,13 +254,13 @@ const StockCard = ({
             <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
               <Zap className="w-4 h-4 text-yellow-400" />
               <h4 className="text-sm font-bold font-display uppercase tracking-wider text-foreground">
-                AI Signal Strength
+                Technical Signal Strength
               </h4>
             </div>
 
             <div className="space-y-5">
-              {/* Overall AI Score */}
-              <SentimentMeter score={stock.score} />
+              {/* Overall Score */}
+              <ScoreMeter score={stock.score} />
 
               {/* 3 Key Expansion Factors */}
               <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
@@ -279,16 +279,6 @@ const StockCard = ({
                   value={stock.futuresStrength}
                   icon={Layers}
                 />
-              </div>
-
-              {/* Analysis Text */}
-              <div className="bg-white/5 p-3 rounded-lg border border-white/5">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  <span className="text-foreground font-semibold mr-1">
-                    Analysis:
-                  </span>
-                  {stock.analysis}
-                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
@@ -337,10 +327,10 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-wide uppercase">
-                Stock<span className="text-primary text-glow">Rank</span> AI
+                Stock<span className="text-primary text-glow">Rank</span>
               </h1>
               <p className="text-sm text-muted-foreground font-mono">
-                Real-time algorithmic ranking & sentiment analysis
+                Indian Stock Exchange • Algorithmic Ranking System
               </p>
             </div>
           </div>
@@ -350,7 +340,7 @@ export default function Dashboard() {
               <Search className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             </div>
             <Input
-              placeholder="Search ticker or company..."
+              placeholder="Search symbol (e.g. RELIANCE)..."
               className="pl-10 bg-black/40 border-white/10 focus:border-primary/50 text-foreground h-12 rounded-lg backdrop-blur-sm transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
