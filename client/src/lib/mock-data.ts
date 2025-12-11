@@ -16,6 +16,12 @@ export interface Stock {
   candleStrength: number; // 0-100
   volumeStrength: number; // 0-100
   futuresStrength: number; // 0-100
+  
+  // Avg Expansion Metrics
+  avgCandleExp: number;
+  avgVolumeExp: number;
+  avgBullStrength: number;
+  avgBearStrength: number;
 }
 
 export interface ApiStockData {
@@ -83,6 +89,12 @@ export const mapApiDataToStock = (apiData: ApiStockData, index: number): Stock =
     candleStrength: apiData.candleExpansionValue > 0 ? apiData.candleExpansionValue : apiData.intradayBullStrength, // Fallback to bull strength if candle exp is 0
     volumeStrength: Math.min(100, (apiData.volumeExpansionValue / apiData.avgLookbackCandlesVolumeExp) * 50), // Rough relative strength
     futuresStrength: Math.round(Math.random() * 100), // Not in API, keeping mock
+    
+    // Map avg values directly
+    avgCandleExp: apiData.avgLookbackCandlesCandleExp,
+    avgVolumeExp: apiData.avgLookbackCandlesVolumeExp,
+    avgBullStrength: apiData.avgLookbackCandlesBullStrength,
+    avgBearStrength: apiData.avgLookbackCandlesBearStrength,
   };
 };
 
@@ -104,7 +116,11 @@ export const MOCK_STOCKS: Stock[] = [
     history: generateHistory(2900, 0.03),
     candleStrength: 92,
     volumeStrength: 88,
-    futuresStrength: 95
+    futuresStrength: 95,
+    avgCandleExp: 1.5,
+    avgVolumeExp: 15000,
+    avgBullStrength: 0.7,
+    avgBearStrength: 0.3
   },
   // ... (rest of the mock data can stay or be removed if strictly using API)
 ];

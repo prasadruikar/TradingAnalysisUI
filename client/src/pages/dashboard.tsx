@@ -14,6 +14,7 @@ import {
   Layers,
   BarChart2,
   RefreshCw,
+  Info,
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import { type Stock } from "@/lib/mock-data";
@@ -52,10 +53,12 @@ const StrengthBar = ({
   label,
   value,
   icon: Icon,
+  avgValue,
 }: {
   label: string;
   value: number;
   icon: React.ElementType;
+  avgValue?: number;
 }) => {
   return (
     <div className="space-y-1.5">
@@ -66,18 +69,25 @@ const StrengthBar = ({
             {label}
           </span>
         </div>
-        <span
-          className={cn(
-            "font-mono font-bold",
-            value >= 70
-              ? "text-primary"
-              : value >= 40
-              ? "text-yellow-500"
-              : "text-destructive"
-          )}
-        >
-          {value.toFixed(0)}%
-        </span>
+        <div className="flex items-center gap-2">
+            {avgValue !== undefined && (
+                <span className="text-[10px] text-muted-foreground font-mono opacity-70">
+                    Avg: {avgValue.toFixed(1)}
+                </span>
+            )}
+            <span
+              className={cn(
+                "font-mono font-bold",
+                value >= 70
+                  ? "text-primary"
+                  : value >= 40
+                  ? "text-yellow-500"
+                  : "text-destructive"
+              )}
+            >
+              {value.toFixed(0)}%
+            </span>
+        </div>
       </div>
       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
         <motion.div
@@ -269,11 +279,13 @@ const StockCard = ({
                 <StrengthBar
                   label="Candle Expansion"
                   value={stock.candleStrength}
+                  avgValue={stock.avgCandleExp}
                   icon={CandlestickChart}
                 />
                 <StrengthBar
                   label="Volume Expansion"
                   value={stock.volumeStrength}
+                  avgValue={stock.avgVolumeExp}
                   icon={BarChart2}
                 />
                 <StrengthBar
@@ -283,7 +295,19 @@ const StockCard = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-1">
+               {/* Avg Strength Metrics */}
+               <div className="grid grid-cols-2 gap-3">
+                   <div className="bg-white/5 p-2 rounded border border-white/5 flex flex-col">
+                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Avg Bull Str</span>
+                       <span className="text-sm font-mono font-bold text-primary">{stock.avgBullStrength.toFixed(2)}</span>
+                   </div>
+                   <div className="bg-white/5 p-2 rounded border border-white/5 flex flex-col">
+                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Avg Bear Str</span>
+                       <span className="text-sm font-mono font-bold text-destructive">{stock.avgBearStrength.toFixed(2)}</span>
+                   </div>
+               </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-white/5 mt-2">
                 <Metric label="Vol" value={stock.volume} />
                 <Metric label="Mkt Cap" value={stock.marketCap} />
               </div>
