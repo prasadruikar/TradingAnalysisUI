@@ -102,5 +102,7 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
-  }
+  },
+  "proxy": "http://localhost:8181"
+
 }
