@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 // --- Components ---
 
 const Metric = ({
+  
   label,
   value,
   trend,
@@ -36,6 +37,8 @@ const Metric = ({
   value: string;
   trend?: "up" | "down" | "neutral";
 }) => (
+  
+
   <div className="flex flex-col">
     <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono">
       {label}
@@ -138,7 +141,7 @@ const StrengthBar = ({
 // Specialized Dual Bar Component for Expansion vs Average
 const ExpansionMetric = ({
     label,
-    currentValue,
+    currentValue = 0,
     avgValue,
     icon: Icon
 }: {
@@ -206,8 +209,9 @@ const ScoreMeter = ({ score }: { score: number }) => {
               ? "text-yellow-500"
               : "text-destructive"
           )}
-        >
-          {score.toFixed(0)}/100
+        >{Number(score ?? 0).toFixed(0)}/100
+
+          {/* {score.toFixed(0)}/100 */}
         </span>
       </div>
       <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
@@ -230,7 +234,7 @@ const ScoreMeter = ({ score }: { score: number }) => {
 // Vertical Bar Component for "Music Volume" Style
 const EqualizerBar = ({
   label,
-  current,
+  current = 0,
   avg,
   icon: Icon,
 }: {
@@ -292,7 +296,7 @@ const EqualizerBar = ({
                 : "text-foreground"
             )}
           >
-            {current.toFixed(0)}
+            {current.toFixed(0)}/100
           </span>
         </div>
         {avg !== undefined && (
@@ -304,6 +308,7 @@ const EqualizerBar = ({
 };
 
 const StockCard = ({
+  
   stock,
   isHovered,
   onHover,
@@ -341,7 +346,7 @@ const StockCard = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono">
-                #{stock.rank}
+                #{stock.score}
               </span>
               <span className="text-xs text-muted-foreground">{stock.sector}</span>
             </div>
@@ -389,8 +394,8 @@ const StockCard = ({
             />
             <EqualizerBar 
                 label="Futures" 
-                current={stock.futuresStrength} 
-                avg={stock.avgFuturesExp} 
+                current={stock.intradayFutureOIStrength} 
+                avg={stock.avgFuturesOpenInterest} 
                 icon={Layers} 
             />
         </div>
@@ -431,9 +436,10 @@ const StockCard = ({
                 type="monotone"
                 dataKey="value"
                 stroke={
-                  stock.change >= 0
+                  stock.sentiment === "Bullish"
                     ? "var(--color-primary)"
-                    : "var(--color-destructive)"
+                    : stock.sentiment === "Bearish" 
+                    ? "var(--color-destructive)": "var(--color-neutral)"
                 }
                 fill={`url(#gradient-${stock.id})`}
                 strokeWidth={2}
@@ -480,8 +486,8 @@ const StockCard = ({
                 />
                 <ExpansionMetric
                   label="Futures Expansion"
-                  currentValue={stock.futuresStrength}
-                  avgValue={stock.avgFuturesExp}
+                  currentValue={stock.intradayFutureOIStrength}
+                  avgValue={stock.avgFuturesOpenInterest}
                   icon={Layers}
                 />
               </div>
@@ -500,7 +506,9 @@ const StockCard = ({
 
               <div className="grid grid-cols-2 gap-3 pt-1 border-t border-white/5 mt-2">
                 <Metric label="Vol" value={stock.volume} />
+                <Metric label="Trade Triggered" value={stock.timestamp} />
                 <Metric label="Mkt Cap" value={stock.marketCap} />
+                
               </div>
             </div>
           </motion.div>
@@ -513,14 +521,37 @@ const StockCard = ({
 export default function Dashboard() {
   const [hoveredStockId, setHoveredStockId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sentimentFilter, setSentimentFilter] = useState<
+  "ALL" | "Bullish" | "Bearish"
+>("ALL");
+
   
   const { data: stocks, isLoading, isError } = useStocks();
 
-  const filteredStocks = (stocks || []).filter(
+  // const filteredStocks = (stocks || []).filter(
+  //   (s) =>
+  //     s.ticker.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
+
+const filteredStocks = (stocks || [])
+  // ❌ never show Neutral
+  // .filter((s) => s.sentiment !== "Neutral")
+
+  // 🎯 bullish / bearish filter
+  .filter((s) => {
+    if (sentimentFilter === "ALL") return true;
+    return s.sentiment === sentimentFilter;
+  })
+
+  // 🔍 search filter
+  .filter(
     (s) =>
       s.ticker.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 relative overflow-x-hidden">
@@ -565,6 +596,27 @@ export default function Dashboard() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <div className="flex gap-2 mt-4">
+  {["ALL", "Bullish", "Bearish"].map((type) => (
+    <button
+      key={type}
+      onClick={() => setSentimentFilter(type as any)}
+      className={`px-4 py-1.5 rounded-full text-sm font-mono border transition
+        ${
+          sentimentFilter === type
+            ? type === "Bullish"
+              ? "bg-green-500/20 text-green-400 border-green-500"
+              : type === "Bearish"
+              ? "bg-red-500/20 text-red-400 border-red-500"
+              : "bg-white/20 text-white border-white/30"
+            : "border-white/10 text-gray-400 hover:bg-white/5"
+        }`}
+    >
+      {type}
+    </button>
+  ))}
+</div>
+
         </header>
 
         {/* Loading State */}

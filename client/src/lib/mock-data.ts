@@ -1,6 +1,6 @@
 export interface Stock {
   id: string;
-  rank: number;
+
   ticker: string;
   name: string;
   price: number;
@@ -14,12 +14,13 @@ export interface Stock {
   history: { value: number }[];
   candleStrength: number;
   volumeStrength: number;
-  futuresStrength: number;
+  intradayFutureOIStrength: number;
   avgCandleExp: number;
   avgVolumeExp: number;
-  avgFuturesExp: number;
+  avgFuturesOpenInterest: number;
   avgBullStrength: number;
   avgBearStrength: number;
+  timestamp: string ;
 }
 
 export interface ApiStockData {
@@ -38,7 +39,9 @@ export interface ApiStockData {
   intradayVolumeExpansion: number;
   avgLookbackCandlesVolumeExp: number;
   previousClose: number;
-  timestamp: string | null;
+  timestamp: string;
+  intradayFutureOIStrength:number;
+  avgFuturesOpenInterest:number;
 }
 
 const generateHistory = (basePrice: number, volatility: number) => {
@@ -62,14 +65,13 @@ export const mapApiDataToStock = (apiData: ApiStockData, index: number): Stock =
   if (apiData.tradeType === "LONG") sentiment = "Bullish";
   if (apiData.tradeType === "SHORT") sentiment = "Bearish";
 
-  const score = apiData.pValue > 0 ? Math.min(100, Math.max(0, apiData.pValue)) : Math.round(Math.random() * 40 + 60);
-
+  // const score = apiData.pValue > 0 ? Math.min(100, Math.max(0, apiData.pValue)) : Math.round(Math.random() * 40 + 60);
+const score = apiData.pValue ;
   return {
     id: apiData.instrumentSymbol,
-    rank: index + 1,
     ticker: apiData.instrumentSymbol,
     name: apiData.instrumentSymbol,
-    price: currentPrice,
+    price: apiData.previousClose,
     change: apiData.currentPercentage,
     changeAmount: changeAmt,
     marketCap: "₹--",
@@ -80,12 +82,13 @@ export const mapApiDataToStock = (apiData: ApiStockData, index: number): Stock =
     history: generateHistory(currentPrice, 0.02),
     candleStrength: apiData.intradayBullStrength,
     volumeStrength: apiData.intradayVolumeExpansion,
-    futuresStrength: Math.round(Math.random() * 100),
-    avgCandleExp: apiData.avgLookbackCandlesCandleExp,
+    intradayFutureOIStrength: apiData.intradayFutureOIStrength,
+    avgCandleExp: apiData.intradayBearStrength,
     avgVolumeExp: Math.min(100, apiData.avgLookbackCandlesVolumeExp / 1000),
-    avgFuturesExp: Math.round(Math.random() * 80 + 10),
+    avgFuturesOpenInterest: apiData.avgFuturesOpenInterest,
     avgBullStrength: apiData.avgLookbackCandlesBullStrength,
     avgBearStrength: apiData.avgLookbackCandlesBearStrength,
+    timestamp: apiData.timestamp
   };
 };
 
@@ -93,11 +96,10 @@ export const mapApiDataToStock = (apiData: ApiStockData, index: number): Stock =
 export const MOCK_STOCKS: Stock[] = [
   {
     id: "1",
-    rank: 1,
     ticker: "SAMPLE",
     name: "Reliance Industries Ltd",
     price: 2985.4,
-    change: 1.25,
+    change: -1.25,
     changeAmount: 36.85,
     marketCap: "₹20.1T",
     volume: "4.5M",
@@ -107,12 +109,13 @@ export const MOCK_STOCKS: Stock[] = [
     history: generateHistory(2900, 0.03),
     candleStrength: 92,
     volumeStrength: 88,
-    futuresStrength: 95,
+    intradayFutureOIStrength: 95,
     avgCandleExp: 1.5,
     avgVolumeExp: 15,
-    avgFuturesExp: 85,
+    avgFuturesOpenInterest: 85,
     avgBullStrength: 0.7,
-    avgBearStrength: 0.3
+    avgBearStrength: 0.3,
+    timestamp:"2:13"
   },
   // ... (rest of the mock data can stay or be removed if strictly using API)
 ];
